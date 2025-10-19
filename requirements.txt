@@ -3,3 +3,5 @@ uvicorn[standard]
 openai
 pandas
 chromadb
+slowapi==0.1.9
+limits==3.12.0
