@@ -1,5 +1,5 @@
 import os, json
-from fastapi import FastAPI, Header, HTTPException, Depends
+from fastapi import FastAPI, Header, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -92,7 +92,7 @@ def openai_generate(product: str, budget: str | None, audience: str | None):
 
 @app.post("/generate")
 @limiter.limit("10/minute")
-def generate(brief: Brief, _: None = Depends(require_api_key)):
+def generate(brief: Brief, request: Request, _: None = Depends(require_api_key)):
     justif = _make_justification(brief.product)
     has_key = bool(os.getenv("OPENAI_API_KEY"))
     if not has_key:
