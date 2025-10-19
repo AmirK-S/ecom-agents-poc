@@ -1,10 +1,13 @@
-import os, json, re
+import os, json
 from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+
+# RAG (index CSV + recherche similaire)
+from rag import build_or_update_index, search_similar
 
 API_KEY = os.getenv("API_KEY", "")
 ALLOW_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
@@ -31,6 +34,30 @@ class Brief(BaseModel):
     product: str
     budget: str | None = None
     audience: str | None = None
+
+@app.on_event("startup")
+def _startup():
+    try:
+        n = build_or_update_index()
+        print(f"[RAG] indexed {n} items from CSV")
+    except Exception as e:
+        print(f"[RAG] index error: {e}")
+
+def _make_justification(query: str):
+    try:
+        hits = search_similar(query, n=3)
+    except Exception as e:
+        return {"evidence": [], "comment": f"RAG indisponible: {e}"}
+    if not hits:
+        return {"evidence": [], "comment": "Pas de données RAG disponibles."}
+    evidence = []
+    for h in hits:
+        m = h.get("meta", {}) or {}
+        evidence.append({
+            "sector": m.get("sector") or m.get("category") or "n/a",
+            "angle_hint": m.get("angle") or m.get("hook") or "",
+        })
+    return {"evidence": evidence, "comment": "Recommandations appuyées par des pubs similaires."}
 
 @app.get("/")
 def root():
@@ -66,11 +93,14 @@ def openai_generate(product: str, budget: str | None, audience: str | None):
 @app.post("/generate")
 @limiter.limit("10/minute")
 def generate(brief: Brief, _: None = Depends(require_api_key)):
+    justif = _make_justification(brief.product)
     has_key = bool(os.getenv("OPENAI_API_KEY"))
     if not has_key:
-        return stub_generate(brief.product, brief.budget, brief.audience)
+        out = stub_generate(brief.product, brief.budget, brief.audience)
+        return {**out, "justification": justif}
     try:
-        return openai_generate(brief.product, brief.budget, brief.audience)
-    except Exception as e:
-        # fallback silencieux pour la démo
-        return stub_generate(brief.product, brief.budget, brief.audience)
+        out = openai_generate(brief.product, brief.budget, brief.audience)
+        return {**out, "justification": justif}
+    except Exception:
+        out = stub_generate(brief.product, brief.budget, brief.audience)
+        return {**out, "justification": justif}
