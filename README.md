@@ -1,48 +1,82 @@
-# Ecom AI POC
+# 🚀 Ecom AI POC
 
-Petit proof-of-concept d’un **agent IA spécialisé e-commerce**.
-Backend en **FastAPI**, déployé sur **Coolify**, sécurisé par **clé API** et limité en débit avec **SlowAPI**.
-Intégration d’un **CSV de pubs e-commerce** dans une base vectorielle (Chroma) pour fournir des justifications RAG.
-
----
-
-## Fonctionnalités
-
-* **/healthz** → vérification de l’état.
-* **/generate** (POST) → génère des publicités à partir d’un produit/budget/audience.
-
-  * Utilise OpenAI si `OPENAI_API_KEY` est défini.
-  * Sinon renvoie une réponse stub.
-  * Ajoute une **justification RAG** en se basant sur les pubs du CSV.
+Proof-of-Concept d’un **backend IA pour la génération de publicités e-commerce**.
+Ce projet montre la capacité à combiner **FastAPI + OpenAI + RAG (CSV + Chroma)** et à déployer le tout sur un VPS avec **Coolify**.
 
 ---
 
-## CSV attendu
+## 🔧 Architecture technique
 
-Fichier : `data/ads.csv`
-Colonnes :
+* **Backend** : [FastAPI](https://fastapi.tiangolo.com/) exposant deux endpoints :
 
-* `xid` : identifiant unique
-* `secteur` : ex. skincare, fitness…
-* `hook_ou_angle` : accroche ou angle marketing utilisé
-* `texte_publicitaire` : texte de la publicité
-* `call_to_action` : bouton ou phrase d’action
+  * `GET /healthz` → check de santé.
+  * `POST /generate` → génère une pub à partir d’un produit.
 
-Chaque ligne représente une pub. Environ 30–50 suffisent pour un POC.
+* **Sécurité** :
+
+  * Accès protégé par clé d’API (`X-API-Key`).
+  * Limitation de débit avec [SlowAPI](https://pypi.org/project/slowapi/) (10 requêtes/minute/IP).
+
+* **IA** :
+
+  * **OpenAI** (si `OPENAI_API_KEY` défini) → modèle `gpt-4o-mini` pour générer `angles`, `script`, `ad_text`.
+  * **Stub fallback** (si pas de clé) → réponses statiques mais plausibles.
+
+* **RAG (Retrieval-Augmented Generation)** :
+
+  * Base CSV `data/ads.csv` (30–50 pubs e-commerce).
+  * Colonnes :
+
+    * `xid`, `secteur`, `hook_ou_angle`, `texte_publicitaire`, `call_to_action`.
+  * Indexation dans [ChromaDB](https://docs.trychroma.com/) avec embeddings OpenAI.
+  * À chaque génération, l’API ajoute une **justification** issue des pubs les plus proches du produit demandé.
+
+* **Déploiement** :
+
+  * Hébergé sur VPS Hostinger via [Coolify](https://coolify.io/).
+  * Build Docker auto depuis repo Git.
+  * Domaine : `https://ecomaipoc.amirks.eu`.
+  * Certificat SSL automatique.
 
 ---
 
-## Variables d’environnement
+## 📂 Structure
 
-* `API_KEY` : clé secrète pour accéder à l’API (ex: `X-API-Key: ...`).
-* `OPENAI_API_KEY` : clé OpenAI (si dispo).
-* `ADS_CSV` : chemin vers le CSV (par défaut `data/ads.csv`).
-* `CHROMA_DIR` : chemin local pour la base vectorielle (par défaut `/app/chroma`).
-* `ALLOWED_ORIGINS` : origines autorisées pour CORS (séparées par des virgules).
+```
+.
+├── main.py        # FastAPI + endpoints
+├── rag.py         # Indexation CSV + recherche Chroma
+├── requirements.txt
+├── data/
+│   └── ads.csv    # Dataset e-commerce (pubs réelles ou mock)
+└── README.md
+```
 
 ---
 
-## Exemple d’appel
+## ⚙️ Variables d’environnement
+
+| Variable          | Description                                                    |
+| ----------------- | -------------------------------------------------------------- |
+| `API_KEY`         | Clé secrète pour sécuriser `/generate`                         |
+| `OPENAI_API_KEY`  | Clé OpenAI (sinon stub)                                        |
+| `ADS_CSV`         | Chemin vers le CSV (défaut: `data/ads.csv`)                    |
+| `CHROMA_DIR`      | Répertoire pour stocker la base Chroma (défaut: `/app/chroma`) |
+| `ALLOWED_ORIGINS` | CORS origins autorisées (séparées par des virgules)            |
+
+---
+
+## ▶️ Exemple d’appel
+
+### Vérification santé
+
+```bash
+curl -s https://ecomaipoc.amirks.eu/healthz
+```
+
+→ `{"ok": true}`
+
+### Génération de pub
 
 ```bash
 curl -s -X POST https://ecomaipoc.amirks.eu/generate \
@@ -62,7 +96,7 @@ Réponse type :
   "justification": {
     "evidence": [
       {"sector": "skincare", "angle_hint": "storytelling"},
-      {"sector": "skincare", "angle_hint": "avant/après"}
+      {"sector": "fitness", "angle_hint": "avant/après"}
     ],
     "comment": "Recommandations appuyées par des pubs similaires."
   }
@@ -71,9 +105,29 @@ Réponse type :
 
 ---
 
-## Déploiement avec Coolify
+## 🔍 Ce qu’il se passe concrètement
 
-1. Repo GitHub avec `main.py`, `rag.py`, `requirements.txt`, `Dockerfile`, `data/ads.csv`.
-2. Créer une Application dans Coolify (Dockerfile).
-3. Configurer les variables d’environnement.
-4. Déployer.
+1. Tu envoies un produit + budget + audience à `/generate`.
+
+2. L’API :
+
+   * vérifie la clé d’API.
+   * applique le **rate limit**.
+   * génère la pub via OpenAI (ou stub si clé absente).
+   * interroge le **dataset CSV** avec Chroma pour trouver pubs similaires.
+   * fusionne les résultats → réponse finale.
+
+3. Tu reçois un JSON prêt à être utilisé pour un pitch, une pub test ou une démo client.
+
+---
+
+## ✅ Objectif du POC
+
+* **Démontrer la valeur technique** :
+
+  * Backend déployé et sécurisé.
+  * Génération IA en production.
+  * Couplage IA + dataset métier.
+
+* **Prouver la différenciation** :
+  Pas juste un chatbot générique, mais un **agent e-commerce intelligent**, qui s’appuie sur des données concrètes.
