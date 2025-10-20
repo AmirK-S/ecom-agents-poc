@@ -1,11 +1,11 @@
-# 🚀 Ecom AI POC
+# Ecom AI POC
 
 Proof-of-Concept d’un **backend IA pour la génération de publicités e-commerce**.
 Ce projet montre la capacité à combiner **FastAPI + OpenAI + RAG (CSV + Chroma)** et à déployer le tout sur un VPS avec **Coolify**.
 
 ---
 
-## 🔧 Architecture technique
+## Architecture technique
 
 * **Backend** : [FastAPI](https://fastapi.tiangolo.com/) exposant deux endpoints :
 
@@ -40,7 +40,7 @@ Ce projet montre la capacité à combiner **FastAPI + OpenAI + RAG (CSV + Chroma
 
 ---
 
-## 📂 Structure
+## Structure
 
 ```
 .
@@ -54,7 +54,7 @@ Ce projet montre la capacité à combiner **FastAPI + OpenAI + RAG (CSV + Chroma
 
 ---
 
-## ⚙️ Variables d’environnement
+## Variables d’environnement
 
 | Variable          | Description                                                    |
 | ----------------- | -------------------------------------------------------------- |
@@ -66,7 +66,7 @@ Ce projet montre la capacité à combiner **FastAPI + OpenAI + RAG (CSV + Chroma
 
 ---
 
-## ▶️ Exemple d’appel
+## Exemple d’appel
 
 ### Vérification santé
 
@@ -105,7 +105,7 @@ Réponse type :
 
 ---
 
-## 🔍 Ce qu’il se passe concrètement
+## Ce qu’il se passe concrètement
 
 1. Tu envoies un produit + budget + audience à `/generate`.
 
@@ -121,7 +121,7 @@ Réponse type :
 
 ---
 
-## ✅ Objectif du POC
+## Objectif du POC
 
 * **Démontrer la valeur technique** :
 
